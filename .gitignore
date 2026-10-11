@@ -4,3 +4,6 @@
 #ignora arquivos venv
 .venv/
 .venv-1/
+
+#ignora arquivos de teste
+tests/
