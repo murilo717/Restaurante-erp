@@ -7,3 +7,5 @@
 
 #ignora arquivos de teste
 tests/
+
+requirements.txt
