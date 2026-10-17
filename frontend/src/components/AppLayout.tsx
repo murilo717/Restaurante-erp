@@ -19,6 +19,8 @@ import {
 import MenuIcon from "@mui/icons-material/Menu";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import TableRestaurantIcon from "@mui/icons-material/TableRestaurant";
+import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
+import BadgeIcon from "@mui/icons-material/Badge";
 import RestaurantMenuIcon from "@mui/icons-material/RestaurantMenu";
 import PaymentsIcon from "@mui/icons-material/Payments";
 import ViewModuleIcon from "@mui/icons-material/ViewModule";
@@ -44,6 +46,12 @@ const NAV_ITEMS: NavItem[] = [
     perfis: ["garcom", "cozinha", "gerente", "supervisor"],
   },
   {
+    label: "Pedidos",
+    path: "/pedidos",
+    icon: <ReceiptLongIcon />,
+    perfis: ["garcom", "cozinha", "gerente", "supervisor"],
+  },
+  {
     label: "Pratos",
     path: "/pratos",
     icon: <RestaurantMenuIcon />,
@@ -54,6 +62,12 @@ const NAV_ITEMS: NavItem[] = [
     path: "/pagamentos",
     icon: <PaymentsIcon />,
     perfis: ["garcom", "gerente"],
+  },
+  {
+    label: "Funcionários",
+    path: "/funcionarios",
+    icon: <BadgeIcon />,
+    perfis: ["gerente"],
   },
   { label: "Módulos", path: "/modulos", icon: <ViewModuleIcon /> },
 ];

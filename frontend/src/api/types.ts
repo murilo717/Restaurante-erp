@@ -93,3 +93,71 @@ export interface MesaAtualizar {
   capacidade?: number;
   status?: StatusMesa;
 }
+
+// Pedidos — espelha crm.pedidos / crm.itens_pedido
+export type StatusPedido =
+  | "aberto"
+  | "em_preparo"
+  | "entregue"
+  | "pago"
+  | "cancelado";
+
+export type CanalPedido = "salao" | "delivery" | "qrcode";
+
+export interface ItemPedido {
+  item_id: number;
+  prato_id: number;
+  prato_nome: string;
+  quantidade: number;
+  preco_unitario_registrado: number;
+  subtotal: number;
+  status_producao: string;
+}
+
+export interface PedidoResumo {
+  pedido_id: number;
+  data_abertura: string;
+  mesa_id: number | null;
+  mesa_numero: number | null;
+  canal: CanalPedido;
+  status: StatusPedido;
+  valor_total: number;
+  qtd_itens: number;
+}
+
+export interface PedidoDetalhe {
+  pedido_id: number;
+  data_abertura: string;
+  mesa_id: number | null;
+  mesa_numero: number | null;
+  canal: CanalPedido;
+  status: StatusPedido;
+  valor_total: number;
+  itens: ItemPedido[];
+}
+
+export interface PedidoAbrir {
+  mesa_id?: number | null;
+  canal?: CanalPedido;
+}
+
+// Funcionários — espelha rh.funcionarios / app/modules/rh/schemas.py
+export type CargoFuncionario = "garcom" | "cozinha" | "gerente" | "ceo" | "dba";
+
+export interface Funcionario {
+  funcionario_id: number;
+  nome: string;
+  cpf: string;
+  cargo: CargoFuncionario;
+  salario: number;
+  data_admissao: string;
+  ativo: boolean;
+  usuario_login: string | null;
+}
+
+export interface FuncionarioCriar {
+  nome: string;
+  cpf: string;
+  cargo: CargoFuncionario;
+  salario: number;
+}

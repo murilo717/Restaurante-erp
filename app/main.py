@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.modules.auth.router import router as auth
 from app.modules.bi.router import router as bi
 from app.modules.crm.router import router as crm
+from app.modules.crm.router_pedido import router as crm_pedidos
 from app.modules.fi.router import router as fi
 from app.modules.mm.router import router as mm
 from app.modules.pp.router import router as pp
@@ -26,6 +27,7 @@ app.add_middleware(
 app.include_router(auth)
 app.include_router(bi)
 app.include_router(crm)
+app.include_router(crm_pedidos)
 app.include_router(fi)
 app.include_router(mm)
 app.include_router(pp)
