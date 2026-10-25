@@ -161,3 +161,166 @@ export interface FuncionarioCriar {
   cargo: CargoFuncionario;
   salario: number;
 }
+
+// --- KDS (crm.itens_pedido.status_producao) ---
+export type StatusProducao = "fila" | "preparando" | "pronto" | "entregue";
+
+export interface ItemKDS {
+  item_id: number;
+  pedido_id: number;
+  mesa_numero: number | null;
+  canal: string;
+  prato_nome: string;
+  quantidade: number;
+  status_producao: StatusProducao;
+  pedido_status: string;
+  data_abertura: string;
+}
+
+// --- Ordens de Produção (pp) ---
+export type StatusOP =
+  | "planejada"
+  | "em_andamento"
+  | "concluida"
+  | "cancelada";
+
+export interface Centro {
+  centro_id: number;
+  nome: string;
+  capacidade_porcoes_hora: number;
+}
+
+export interface OrdemProducao {
+  op_id: number;
+  prato_id: number;
+  prato_nome: string;
+  centro_id: number;
+  centro_nome: string;
+  quantidade: number;
+  status: StatusOP;
+  data_prevista: string;
+  iniciada_em: string | null;
+  concluida_em: string | null;
+}
+
+export interface OrdemProducaoCriar {
+  prato_id: number;
+  centro_id: number;
+  quantidade: number;
+  data_prevista?: string | null;
+}
+
+export interface CapacidadeCentro {
+  centro_id: number;
+  centro: string;
+  data_prevista: string;
+  porcoes_planejadas: number;
+  capacidade_dia: number;
+  ocupacao_pct: number;
+}
+
+// --- MM: Insumos, Ficha Técnica, Fornecedores, Compras, Lotes ---
+export interface Insumo {
+  insumo_id: number;
+  nome: string;
+  unidade_medida: string;
+  quantidade_estoque: number;
+  estoque_minimo: number;
+  data_validade: string | null;
+  perecivel: boolean;
+  abaixo_minimo: boolean;
+}
+
+export interface FichaItem {
+  insumo_id: number;
+  insumo_nome: string;
+  unidade_medida: string;
+  quantidade_necessaria: number;
+}
+
+export interface FichaTecnica {
+  prato_id: number;
+  prato_nome: string;
+  itens: FichaItem[];
+}
+
+export interface Fornecedor {
+  fornecedor_id: number;
+  razao_social: string;
+  cnpj: string;
+  contato: string | null;
+  ativo: boolean;
+}
+
+export interface FornecedorCriar {
+  razao_social: string;
+  cnpj: string;
+  contato?: string | null;
+}
+
+export type StatusCompra = "rascunho" | "enviado" | "recebido" | "cancelado";
+
+export interface ItemCompra {
+  item_compra_id: number;
+  insumo_id: number;
+  insumo_nome: string;
+  quantidade: number;
+  preco_unitario: number;
+  validade: string | null;
+}
+
+export interface Compra {
+  compra_id: number;
+  fornecedor_id: number;
+  fornecedor_nome: string;
+  status: StatusCompra;
+  criado_em: string;
+  recebido_em: string | null;
+  valor_total: number;
+  itens: ItemCompra[];
+}
+
+export type StatusLote = "em_inspecao" | "liberado" | "bloqueado";
+
+export interface Lote {
+  lote_id: number;
+  insumo_id: number;
+  insumo_nome: string;
+  codigo_lote: string;
+  quantidade_inicial: number;
+  validade: string | null;
+  status: StatusLote;
+}
+
+// --- BI / Dashboard ---
+export interface DashboardExecutivo {
+  faturamento_mes: number;
+  insumos_abaixo_minimo: number;
+  os_abertas: number;
+  ncs_abertas: number;
+  riscos_criticos: number;
+  manutencoes_vencidas: number;
+  contas_pagar_vencidas: number;
+}
+
+export interface PratoMaisVendido {
+  mes_referencia: string;
+  prato_id: number;
+  prato: string;
+  categoria: string;
+  quantidade_vendida: number;
+  receita_total: number;
+}
+
+export interface VendaDiaria {
+  dia: string;
+  prato_id: number;
+  quantidade: number;
+}
+
+export interface EtapaFunil {
+  etapa: string;
+  qtd: number;
+  valor_total: number;
+  valor_ponderado: number;
+}

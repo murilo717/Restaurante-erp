@@ -7,6 +7,9 @@ import CadastroPage from "@/pages/CadastroPage";
 import DashboardPage from "@/pages/DashboardPage";
 import MesasPage from "@/pages/MesasPage";
 import PedidosPage from "@/pages/PedidosPage";
+import KdsPage from "@/pages/KdsPage";
+import ProducaoPage from "@/pages/ProducaoPage";
+import EstoquePage from "@/pages/EstoquePage";
 import FuncionariosPage from "@/pages/FuncionariosPage";
 import PratosPage from "@/pages/PratosPage";
 import PagamentosPage from "@/pages/PagamentosPage";
@@ -36,6 +39,9 @@ export default function App() {
         <Route path="/" element={<DashboardPage />} />
         <Route path="/mesas" element={<MesasPage />} />
         <Route path="/pedidos" element={<PedidosPage />} />
+        <Route path="/cozinha" element={<KdsPage />} />
+        <Route path="/producao" element={<ProducaoPage />} />
+        <Route path="/estoque" element={<EstoquePage />} />
         <Route path="/funcionarios" element={<FuncionariosPage />} />
         <Route path="/pratos" element={<PratosPage />} />
         <Route path="/pagamentos" element={<PagamentosPage />} />

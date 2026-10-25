@@ -2,19 +2,33 @@ import { api } from "@/api/client";
 import type {
   CadastroIn,
   CadastroOut,
+  CapacidadeCentro,
+  Centro,
+  Compra,
+  FichaTecnica,
+  Fornecedor,
+  FornecedorCriar,
   Funcionario,
   FuncionarioCriar,
+  Insumo,
+  ItemKDS,
+  Lote,
   Mesa,
   MesaAtualizar,
   MesaCriar,
   ModuloStatus,
+  OrdemProducao,
+  OrdemProducaoCriar,
   PagamentoIn,
   PedidoAbrir,
   PedidoDetalhe,
   PedidoResumo,
   Prato,
+  StatusLote,
   StatusMesa,
+  StatusOP,
   StatusPedido,
+  StatusProducao,
   TokenResponse,
 } from "@/api/types";
 
@@ -176,5 +190,187 @@ export async function vincularUsuario(
     `/rh/funcionarios/${funcionarioId}/vincular-usuario`,
     { login },
   );
+  return data;
+}
+
+// =========================================================================
+// KDS e Produção (módulo PP)
+// =========================================================================
+
+export async function listarKDS(): Promise<ItemKDS[]> {
+  const { data } = await api.get<ItemKDS[]>("/pp/kds");
+  return data;
+}
+
+export async function avancarStatusKDS(
+  itemId: number,
+  status: StatusProducao,
+): Promise<ItemKDS> {
+  const { data } = await api.patch<ItemKDS>(`/pp/kds/${itemId}`, {
+    status_producao: status,
+  });
+  return data;
+}
+
+export async function listarCentros(): Promise<Centro[]> {
+  const { data } = await api.get<Centro[]>("/pp/centros");
+  return data;
+}
+
+export async function listarCapacidade(): Promise<CapacidadeCentro[]> {
+  const { data } = await api.get<CapacidadeCentro[]>("/pp/capacidade");
+  return data;
+}
+
+export async function listarOrdens(): Promise<OrdemProducao[]> {
+  const { data } = await api.get<OrdemProducao[]>("/pp/ordens");
+  return data;
+}
+
+export async function criarOrdem(
+  dados: OrdemProducaoCriar,
+): Promise<OrdemProducao> {
+  const { data } = await api.post<OrdemProducao>("/pp/ordens", dados);
+  return data;
+}
+
+export async function alterarStatusOrdem(
+  opId: number,
+  status: StatusOP,
+): Promise<OrdemProducao> {
+  const { data } = await api.patch<OrdemProducao>(`/pp/ordens/${opId}/status`, {
+    status,
+  });
+  return data;
+}
+
+// =========================================================================
+// Estoque / Materiais (módulo MM)
+// =========================================================================
+
+export async function listarInsumos(): Promise<Insumo[]> {
+  const { data } = await api.get<Insumo[]>("/mm/insumos");
+  return data;
+}
+
+export async function verFicha(pratoId: number): Promise<FichaTecnica> {
+  const { data } = await api.get<FichaTecnica>(`/mm/pratos/${pratoId}/ficha`);
+  return data;
+}
+
+export async function definirItemFicha(
+  pratoId: number,
+  insumo_id: number,
+  quantidade_necessaria: number,
+): Promise<FichaTecnica> {
+  const { data } = await api.put<FichaTecnica>(
+    `/mm/pratos/${pratoId}/ficha/itens`,
+    { insumo_id, quantidade_necessaria },
+  );
+  return data;
+}
+
+export async function removerItemFicha(
+  pratoId: number,
+  insumoId: number,
+): Promise<FichaTecnica> {
+  const { data } = await api.delete<FichaTecnica>(
+    `/mm/pratos/${pratoId}/ficha/itens/${insumoId}`,
+  );
+  return data;
+}
+
+export async function listarFornecedores(): Promise<Fornecedor[]> {
+  const { data } = await api.get<Fornecedor[]>("/mm/fornecedores");
+  return data;
+}
+
+export async function criarFornecedor(
+  dados: FornecedorCriar,
+): Promise<Fornecedor> {
+  const { data } = await api.post<Fornecedor>("/mm/fornecedores", dados);
+  return data;
+}
+
+export async function listarCompras(): Promise<Compra[]> {
+  const { data } = await api.get<Compra[]>("/mm/compras");
+  return data;
+}
+
+export async function criarCompra(fornecedor_id: number): Promise<Compra> {
+  const { data } = await api.post<Compra>("/mm/compras", { fornecedor_id });
+  return data;
+}
+
+export async function adicionarItemCompra(
+  compraId: number,
+  item: {
+    insumo_id: number;
+    quantidade: number;
+    preco_unitario: number;
+    validade?: string | null;
+  },
+): Promise<Compra> {
+  const { data } = await api.post<Compra>(
+    `/mm/compras/${compraId}/itens`,
+    item,
+  );
+  return data;
+}
+
+export async function enviarCompra(compraId: number): Promise<Compra> {
+  const { data } = await api.post<Compra>(`/mm/compras/${compraId}/enviar`);
+  return data;
+}
+
+export async function receberCompra(compraId: number): Promise<Compra> {
+  const { data } = await api.post<Compra>(`/mm/compras/${compraId}/receber`);
+  return data;
+}
+
+export async function listarLotes(): Promise<Lote[]> {
+  const { data } = await api.get<Lote[]>("/mm/lotes");
+  return data;
+}
+
+export async function alterarStatusLote(
+  loteId: number,
+  status: StatusLote,
+): Promise<Lote> {
+  const { data } = await api.patch<Lote>(`/mm/lotes/${loteId}/status`, {
+    status,
+  });
+  return data;
+}
+
+// =========================================================================
+// BI / Dashboard
+// =========================================================================
+
+export async function obterDashboard(): Promise<
+  import("@/api/types").DashboardExecutivo
+> {
+  const { data } = await api.get("/bi/dashboard");
+  return data;
+}
+
+export async function obterPratosMaisVendidos(): Promise<
+  import("@/api/types").PratoMaisVendido[]
+> {
+  const { data } = await api.get("/bi/pratos-mais-vendidos");
+  return data;
+}
+
+export async function obterVendasDiarias(): Promise<
+  import("@/api/types").VendaDiaria[]
+> {
+  const { data } = await api.get("/bi/vendas-diarias");
+  return data;
+}
+
+export async function obterFunilVendas(): Promise<
+  import("@/api/types").EtapaFunil[]
+> {
+  const { data } = await api.get("/bi/funil-vendas");
   return data;
 }

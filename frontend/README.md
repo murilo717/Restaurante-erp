@@ -58,9 +58,12 @@ npm run preview
 | ----------- | -------------------------------- | ---------------------------------------- |
 | Login       | `POST /auth/login`               | público                                  |
 | Cadastro    | `POST /auth/cadastro`            | público                                  |
-| Dashboard   | `GET /{bi,mm,pp,rh}/status`      | autenticado                              |
+| Dashboard   | `GET /bi/dashboard`, `/bi/*` + status | indicadores: gerente/supervisor/auditor; status: todos |
 | Mesas       | `GET/POST/PATCH /crm/mesas`      | ler: operação; criar/editar: gerente/supervisor |
 | Pedidos     | `GET/POST/PATCH/DELETE /crm/pedidos` | garcom, cozinha, gerente, supervisor |
+| Cozinha KDS | `GET/PATCH /pp/kds`              | cozinha, gerente, supervisor             |
+| Produção    | `GET/POST/PATCH /pp/ordens`, `/pp/capacidade` | cozinha/supervisor; criar: gerente/supervisor |
+| Estoque     | `/mm/insumos`, `/mm/pratos/{id}/ficha`, `/mm/compras`, `/mm/lotes` | ler: cozinha/gestão; editar: gerente/supervisor |
 | Funcionários| `GET/POST /rh/funcionarios` + vínculo | gerente                             |
 | Cardápio    | `GET /crm/pratos`                | garcom, cozinha, gerente, supervisor     |
 | Pagamentos  | `POST /financeiro/pagamentos`    | garcom, gerente                          |
@@ -97,3 +100,41 @@ Fluxo de setup (feito por um gestor na tela **Funcionários**):
 
 Se um usuário sem vínculo tentar abrir um pedido, a API responde `409` com uma
 mensagem orientando procurar o gestor.
+
+## Cozinha, Produção e Estoque
+
+- **Cozinha (KDS):** painel em colunas (fila → preparando → pronto) que lê os
+  itens de pedidos ativos e atualiza `crm.itens_pedido.status_producao`. Atualiza
+  sozinho a cada 10s.
+- **Produção (PP):** ordens de produção (`pp.ordens_producao`) com avanço de status
+  (a trigger `pp.fn_op_status` preenche `iniciada_em`/`concluida_em`), e cartões de
+  ocupação por centro consumindo a view `pp.vw_capacidade_centro`.
+- **Estoque (MM):** abas de Insumos (com alerta de estoque abaixo do mínimo),
+  Fichas Técnicas (prato → insumos, que habilitam a baixa automática no pagamento),
+  Compras e Lotes.
+
+### Fluxo de compra (MM)
+
+`rascunho` → adicionar itens → `enviar` → `receber`. O recebimento chama a
+procedure `mm.receber_compra` no banco, que **cria os lotes, dá entrada no estoque,
+registra a movimentação e gera a conta a pagar** automaticamente. Lotes podem ser
+`liberado` ou `bloqueado` (para barrar produto estragado).
+
+> Para a baixa automática de estoque funcionar no pagamento de um pedido, o prato
+> precisa ter ficha técnica cadastrada (a trigger `fi.fn_baixar_estoque_apos_pagamento`
+> consome os insumos conforme a ficha). Centros de trabalho (`pp.centros_trabalho`)
+> e insumos precisam existir no banco para as telas de Produção/Estoque mostrarem
+> dados.
+
+## Dashboard (BI)
+
+Para perfis de gestão (`gerente`/`supervisor`/`auditor`), o Dashboard mostra
+indicadores do negócio e gráficos (Recharts), consumindo as views de BI do banco:
+
+- **Indicadores** (`bi.vw_dashboard_executivo`): faturamento do mês, insumos abaixo
+  do mínimo, contas a pagar vencidas, manutenções vencidas.
+- **Vendas por dia** (`bi.vw_vendas_diarias_prato`): linha temporal de unidades vendidas.
+- **Pratos mais vendidos no mês** (`bi.vw_pratos_mais_vendidos_mes`): barras.
+
+Usuários sem perfil de BI (ex.: garçom) veem apenas a seção de disponibilidade dos
+módulos — a chamada aos indicadores nem é feita, evitando o `403`.

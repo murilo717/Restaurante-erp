@@ -21,6 +21,9 @@ import DashboardIcon from "@mui/icons-material/Dashboard";
 import TableRestaurantIcon from "@mui/icons-material/TableRestaurant";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import BadgeIcon from "@mui/icons-material/Badge";
+import SoupKitchenIcon from "@mui/icons-material/SoupKitchen";
+import PrecisionManufacturingIcon from "@mui/icons-material/PrecisionManufacturing";
+import Inventory2Icon from "@mui/icons-material/Inventory2";
 import RestaurantMenuIcon from "@mui/icons-material/RestaurantMenu";
 import PaymentsIcon from "@mui/icons-material/Payments";
 import ViewModuleIcon from "@mui/icons-material/ViewModule";
@@ -50,6 +53,24 @@ const NAV_ITEMS: NavItem[] = [
     path: "/pedidos",
     icon: <ReceiptLongIcon />,
     perfis: ["garcom", "cozinha", "gerente", "supervisor"],
+  },
+  {
+    label: "Cozinha (KDS)",
+    path: "/cozinha",
+    icon: <SoupKitchenIcon />,
+    perfis: ["cozinha", "gerente", "supervisor"],
+  },
+  {
+    label: "Produção",
+    path: "/producao",
+    icon: <PrecisionManufacturingIcon />,
+    perfis: ["cozinha", "gerente", "supervisor"],
+  },
+  {
+    label: "Estoque",
+    path: "/estoque",
+    icon: <Inventory2Icon />,
+    perfis: ["cozinha", "gerente", "supervisor"],
   },
   {
     label: "Pratos",
