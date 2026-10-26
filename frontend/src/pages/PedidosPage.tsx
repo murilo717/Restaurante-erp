@@ -31,6 +31,7 @@ import {
   abrirPedido,
   adicionarItem,
   alterarStatusPedido,
+  listarClientes,
   listarMesas,
   listarPedidos,
   listarPratos,
@@ -67,6 +68,7 @@ export default function PedidosPage() {
   const [selecionado, setSelecionado] = useState<number | null>(null);
   const [dialogAberto, setDialogAberto] = useState(false);
   const [mesaNova, setMesaNova] = useState<string>("");
+  const [clienteNovo, setClienteNovo] = useState<string>("");
   const [canalNovo, setCanalNovo] = useState<CanalPedido>("salao");
   const [erroAcao, setErroAcao] = useState<string | null>(null);
 
@@ -81,6 +83,10 @@ export default function PedidosPage() {
 
   const mesasQuery = useQuery({ queryKey: ["mesas"], queryFn: listarMesas });
   const pratosQuery = useQuery({ queryKey: ["pratos"], queryFn: listarPratos });
+  const clientesQuery = useQuery({
+    queryKey: ["clientes"],
+    queryFn: listarClientes,
+  });
 
   const detalheQuery = useQuery({
     queryKey: ["pedido", selecionado],
@@ -100,11 +106,13 @@ export default function PedidosPage() {
     mutationFn: () =>
       abrirPedido({
         mesa_id: mesaNova ? Number(mesaNova) : null,
+        cliente_id: clienteNovo ? Number(clienteNovo) : null,
         canal: canalNovo,
       }),
     onSuccess: (pedido) => {
       setDialogAberto(false);
       setMesaNova("");
+      setClienteNovo("");
       setCanalNovo("salao");
       setSelecionado(pedido.pedido_id);
       invalidarTudo();
@@ -261,12 +269,19 @@ export default function PedidosPage() {
                   alignItems="center"
                   mb={1}
                 >
-                  <Typography variant="h6" fontWeight={700}>
-                    Pedido #{detalhe.pedido_id}
-                    {detalhe.mesa_numero
-                      ? ` · Mesa ${detalhe.mesa_numero}`
-                      : ` · ${detalhe.canal}`}
-                  </Typography>
+                  <Box>
+                    <Typography variant="h6" fontWeight={700}>
+                      Pedido #{detalhe.pedido_id}
+                      {detalhe.mesa_numero
+                        ? ` · Mesa ${detalhe.mesa_numero}`
+                        : ` · ${detalhe.canal}`}
+                    </Typography>
+                    {detalhe.cliente_nome && (
+                      <Typography variant="body2" color="text.secondary">
+                        Cliente: {detalhe.cliente_nome}
+                      </Typography>
+                    )}
+                  </Box>
                   <Chip
                     label={STATUS_PEDIDO[detalhe.status].rotulo}
                     color={STATUS_PEDIDO[detalhe.status].cor}
@@ -447,6 +462,25 @@ export default function PedidosPage() {
                 ))}
               </TextField>
             )}
+
+            <TextField
+              select
+              label="Cliente (opcional — acumula pontos)"
+              value={clienteNovo}
+              onChange={(e) => setClienteNovo(e.target.value)}
+              fullWidth
+            >
+              <MenuItem value="">
+                <em>Sem cliente</em>
+              </MenuItem>
+              {clientesQuery.data
+                ?.filter((c) => c.ativo)
+                .map((c) => (
+                  <MenuItem key={c.cliente_id} value={c.cliente_id}>
+                    {c.nome} ({c.pontos_fidelidade} pts)
+                  </MenuItem>
+                ))}
+            </TextField>
           </Stack>
         </DialogContent>
         <DialogActions>

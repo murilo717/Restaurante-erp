@@ -374,3 +374,193 @@ export async function obterFunilVendas(): Promise<
   const { data } = await api.get("/bi/funil-vendas");
   return data;
 }
+
+// =========================================================================
+// Financeiro (FI)
+// =========================================================================
+
+export async function listarContasPagar(): Promise<
+  import("@/api/types").ContaPagar[]
+> {
+  const { data } = await api.get("/financeiro/contas-pagar");
+  return data;
+}
+
+export async function criarContaPagar(
+  dados: import("@/api/types").ContaPagarCriar,
+): Promise<import("@/api/types").ContaPagar> {
+  const { data } = await api.post("/financeiro/contas-pagar", dados);
+  return data;
+}
+
+export async function pagarConta(
+  cpId: number,
+): Promise<import("@/api/types").ContaPagar> {
+  const { data } = await api.patch(`/financeiro/contas-pagar/${cpId}/pagar`);
+  return data;
+}
+
+export async function listarContasReceber(): Promise<
+  import("@/api/types").ContaReceber[]
+> {
+  const { data } = await api.get("/financeiro/contas-receber");
+  return data;
+}
+
+export async function criarContaReceber(
+  dados: import("@/api/types").ContaReceberCriar,
+): Promise<import("@/api/types").ContaReceber> {
+  const { data } = await api.post("/financeiro/contas-receber", dados);
+  return data;
+}
+
+export async function receberConta(
+  crId: number,
+): Promise<import("@/api/types").ContaReceber> {
+  const { data } = await api.patch(`/financeiro/contas-receber/${crId}/receber`);
+  return data;
+}
+
+export async function obterFluxoCaixa(): Promise<
+  import("@/api/types").FluxoCaixaLinha[]
+> {
+  const { data } = await api.get("/financeiro/fluxo-caixa");
+  return data;
+}
+
+export async function listarFechamentos(): Promise<
+  import("@/api/types").FechamentoCaixa[]
+> {
+  const { data } = await api.get("/financeiro/fechamentos");
+  return data;
+}
+
+export async function fecharCaixa(
+  data_?: string | null,
+): Promise<import("@/api/types").FechamentoCaixa> {
+  const { data } = await api.post("/financeiro/fechamentos", {
+    data: data_ ?? null,
+  });
+  return data;
+}
+
+// =========================================================================
+// Clientes e Fidelidade (CRM)
+// =========================================================================
+
+export async function listarClientes(): Promise<
+  import("@/api/types").Cliente[]
+> {
+  const { data } = await api.get("/crm/clientes");
+  return data;
+}
+
+export async function criarCliente(
+  dados: import("@/api/types").ClienteCriar,
+): Promise<import("@/api/types").Cliente> {
+  const { data } = await api.post("/crm/clientes", dados);
+  return data;
+}
+
+export async function atualizarCliente(
+  clienteId: number,
+  dados: import("@/api/types").ClienteAtualizar,
+): Promise<import("@/api/types").Cliente> {
+  const { data } = await api.patch(`/crm/clientes/${clienteId}`, dados);
+  return data;
+}
+
+export async function resgatarPontos(
+  clienteId: number,
+  pontos: number,
+  motivo: string,
+): Promise<{ pontos_fidelidade: number; mensagem: string }> {
+  const { data } = await api.post(
+    `/crm/clientes/${clienteId}/resgatar-pontos`,
+    { pontos, motivo },
+  );
+  return data;
+}
+
+// =========================================================================
+// RH: Ponto, Folha, Recrutamento
+// =========================================================================
+
+export async function listarPonto(): Promise<import("@/api/types").Ponto[]> {
+  const { data } = await api.get("/rh/ponto");
+  return data;
+}
+
+export async function baterEntrada(
+  funcionario_id: number,
+): Promise<import("@/api/types").Ponto> {
+  const { data } = await api.post("/rh/ponto/entrada", { funcionario_id });
+  return data;
+}
+
+export async function baterSaida(
+  funcionario_id: number,
+): Promise<import("@/api/types").Ponto> {
+  const { data } = await api.post("/rh/ponto/saida", { funcionario_id });
+  return data;
+}
+
+export async function listarFolha(): Promise<import("@/api/types").Folha[]> {
+  const { data } = await api.get("/rh/folha");
+  return data;
+}
+
+export async function gerarFolha(
+  competencia?: string | null,
+): Promise<import("@/api/types").Folha[]> {
+  const { data } = await api.post("/rh/folha/gerar", {
+    competencia: competencia ?? null,
+  });
+  return data;
+}
+
+export async function listarVagas(): Promise<import("@/api/types").Vaga[]> {
+  const { data } = await api.get("/rh/vagas");
+  return data;
+}
+
+export async function criarVaga(dados: {
+  cargo: string;
+  descricao?: string | null;
+}): Promise<import("@/api/types").Vaga> {
+  const { data } = await api.post("/rh/vagas", dados);
+  return data;
+}
+
+export async function alterarStatusVaga(
+  vagaId: number,
+  status: import("@/api/types").StatusVaga,
+): Promise<import("@/api/types").Vaga> {
+  const { data } = await api.patch(`/rh/vagas/${vagaId}/status`, { status });
+  return data;
+}
+
+export async function listarCandidatos(
+  vagaId: number,
+): Promise<import("@/api/types").Candidato[]> {
+  const { data } = await api.get(`/rh/vagas/${vagaId}/candidatos`);
+  return data;
+}
+
+export async function criarCandidato(
+  vagaId: number,
+  dados: { nome: string; email?: string | null },
+): Promise<import("@/api/types").Candidato> {
+  const { data } = await api.post(`/rh/vagas/${vagaId}/candidatos`, dados);
+  return data;
+}
+
+export async function moverEtapaCandidato(
+  candidatoId: number,
+  etapa: import("@/api/types").EtapaCandidato,
+): Promise<import("@/api/types").Candidato> {
+  const { data } = await api.patch(`/rh/candidatos/${candidatoId}/etapa`, {
+    etapa,
+  });
+  return data;
+}

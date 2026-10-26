@@ -10,6 +10,9 @@ import PedidosPage from "@/pages/PedidosPage";
 import KdsPage from "@/pages/KdsPage";
 import ProducaoPage from "@/pages/ProducaoPage";
 import EstoquePage from "@/pages/EstoquePage";
+import FinanceiroPage from "@/pages/FinanceiroPage";
+import ClientesPage from "@/pages/ClientesPage";
+import RhPage from "@/pages/RhPage";
 import FuncionariosPage from "@/pages/FuncionariosPage";
 import PratosPage from "@/pages/PratosPage";
 import PagamentosPage from "@/pages/PagamentosPage";
@@ -42,6 +45,9 @@ export default function App() {
         <Route path="/cozinha" element={<KdsPage />} />
         <Route path="/producao" element={<ProducaoPage />} />
         <Route path="/estoque" element={<EstoquePage />} />
+        <Route path="/financeiro" element={<FinanceiroPage />} />
+        <Route path="/clientes" element={<ClientesPage />} />
+        <Route path="/rh" element={<RhPage />} />
         <Route path="/funcionarios" element={<FuncionariosPage />} />
         <Route path="/pratos" element={<PratosPage />} />
         <Route path="/pagamentos" element={<PagamentosPage />} />

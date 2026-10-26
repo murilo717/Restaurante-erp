@@ -67,6 +67,9 @@ npm run preview
 | Funcionários| `GET/POST /rh/funcionarios` + vínculo | gerente                             |
 | Cardápio    | `GET /crm/pratos`                | garcom, cozinha, gerente, supervisor     |
 | Pagamentos  | `POST /financeiro/pagamentos`    | garcom, gerente                          |
+| Financeiro  | `/financeiro/contas-pagar`, `/contas-receber`, `/fluxo-caixa`, `/fechamentos` | gerente/supervisor; auditor lê |
+| Clientes    | `GET/POST/PATCH /crm/clientes`, `/resgatar-pontos` | garcom, gerente, supervisor |
+| RH          | `/rh/ponto`, `/rh/folha`, `/rh/vagas`, `/rh/candidatos` | ponto: operação; folha/vagas: gerente |
 | Módulos     | `GET /{bi,mm,pp,rh}/status`      | autenticado                              |
 
 Novas telas serão adicionadas conforme o backend ganhar endpoints.
@@ -138,3 +141,46 @@ indicadores do negócio e gráficos (Recharts), consumindo as views de BI do ban
 
 Usuários sem perfil de BI (ex.: garçom) veem apenas a seção de disponibilidade dos
 módulos — a chamada aos indicadores nem é feita, evitando o `403`.
+
+## Financeiro (FI)
+
+Tela com abas, para `gerente`/`supervisor` (e `auditor` em leitura):
+
+- **Contas a pagar** (`fi.contas_pagar`): criar despesa e marcar como paga. As
+  contas geradas automaticamente pelo recebimento de compras (`mm.receber_compra`)
+  também aparecem aqui.
+- **Contas a receber** (`fi.contas_receber`): criar receita e marcar como recebida.
+- **Fluxo de caixa** (`fi.vw_fluxo_caixa`): gráfico de saldo acumulado (realizado ×
+  previsto) e tabela por dia.
+- **Fechamento de caixa**: consolida os pagamentos confirmados do dia via a
+  procedure `fi.fechar_caixa_diario` (totais por forma de pagamento + nº de
+  pedidos). A procedure faz `COMMIT` interno, então o backend a executa numa
+  conexão dedicada em modo `AUTOCOMMIT`. Reexecutar atualiza o fechamento do dia.
+
+## Clientes e Fidelidade (CRM)
+
+- **Clientes** (`crm.clientes`): cadastro com nome, CPF (opcional, único),
+  telefone e e-mail.
+- **Fidelidade**: a tabela já tem `pontos_fidelidade`, mas não há regra no banco —
+  a lógica é do backend. Regra adotada: **1 ponto por R$ 1** do valor total,
+  creditado quando o pedido é marcado como `pago` (apenas na primeira vez, sem
+  duplicar em reenvios). Pontos podem ser **resgatados** (débito manual, ex.:
+  sobremesa grátis); o `CHECK (pontos_fidelidade >= 0)` do banco e uma validação
+  no backend impedem saldo negativo.
+- **Pedido com cliente**: ao abrir um pedido, é possível associar um cliente
+  (opcional). Só pedidos com cliente acumulam pontos ao serem pagos.
+
+## RH: Ponto, Folha e Recrutamento
+
+Tela com abas (`gerente`/`supervisor`):
+
+- **Ponto eletrônico** (`rh.ponto`): bater entrada (cria registro aberto) e saída
+  (fecha o último aberto). Bloqueia entrada duplicada e saída sem entrada.
+- **Folha de pagamento** (`rh.folha_pagamento`): gera a folha de todos os
+  funcionários ativos de uma competência via a procedure `rh.gerar_folha`
+  (calcula INSS/IRRF a partir de `sys.parametros`). Idempotente: reexecutar não
+  duplica. Diferente do fechamento de caixa, essa procedure **não** faz COMMIT
+  interno, então roda na transação normal.
+- **Recrutamento** (`rh.vagas` + `rh.candidatos`): abrir vaga, adicionar
+  candidatos e mover entre etapas (triagem → entrevista → proposta → contratado /
+  reprovado); preencher ou cancelar a vaga.

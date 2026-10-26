@@ -9,3 +9,11 @@
 tests/
 
 requirements.txt
+
+#ignora banco de dados
+dum_erp_restaurante.sql
+
+#ignora arquivos docker
+Dockerfile
+docker
+docker-compose.yml

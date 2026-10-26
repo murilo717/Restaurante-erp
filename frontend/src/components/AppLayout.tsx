@@ -24,6 +24,9 @@ import BadgeIcon from "@mui/icons-material/Badge";
 import SoupKitchenIcon from "@mui/icons-material/SoupKitchen";
 import PrecisionManufacturingIcon from "@mui/icons-material/PrecisionManufacturing";
 import Inventory2Icon from "@mui/icons-material/Inventory2";
+import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
+import GroupIcon from "@mui/icons-material/Group";
+import WorkIcon from "@mui/icons-material/Work";
 import RestaurantMenuIcon from "@mui/icons-material/RestaurantMenu";
 import PaymentsIcon from "@mui/icons-material/Payments";
 import ViewModuleIcon from "@mui/icons-material/ViewModule";
@@ -73,6 +76,18 @@ const NAV_ITEMS: NavItem[] = [
     perfis: ["cozinha", "gerente", "supervisor"],
   },
   {
+    label: "Financeiro",
+    path: "/financeiro",
+    icon: <AccountBalanceWalletIcon />,
+    perfis: ["gerente", "supervisor", "auditor"],
+  },
+  {
+    label: "Clientes",
+    path: "/clientes",
+    icon: <GroupIcon />,
+    perfis: ["garcom", "gerente", "supervisor"],
+  },
+  {
     label: "Pratos",
     path: "/pratos",
     icon: <RestaurantMenuIcon />,
@@ -89,6 +104,12 @@ const NAV_ITEMS: NavItem[] = [
     path: "/funcionarios",
     icon: <BadgeIcon />,
     perfis: ["gerente"],
+  },
+  {
+    label: "RH",
+    path: "/rh",
+    icon: <WorkIcon />,
+    perfis: ["gerente", "supervisor"],
   },
   { label: "Módulos", path: "/modulos", icon: <ViewModuleIcon /> },
 ];

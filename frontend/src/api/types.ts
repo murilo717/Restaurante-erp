@@ -119,6 +119,8 @@ export interface PedidoResumo {
   data_abertura: string;
   mesa_id: number | null;
   mesa_numero: number | null;
+  cliente_id: number | null;
+  cliente_nome: string | null;
   canal: CanalPedido;
   status: StatusPedido;
   valor_total: number;
@@ -130,6 +132,8 @@ export interface PedidoDetalhe {
   data_abertura: string;
   mesa_id: number | null;
   mesa_numero: number | null;
+  cliente_id: number | null;
+  cliente_nome: string | null;
   canal: CanalPedido;
   status: StatusPedido;
   valor_total: number;
@@ -138,6 +142,7 @@ export interface PedidoDetalhe {
 
 export interface PedidoAbrir {
   mesa_id?: number | null;
+  cliente_id?: number | null;
   canal?: CanalPedido;
 }
 
@@ -323,4 +328,140 @@ export interface EtapaFunil {
   qtd: number;
   valor_total: number;
   valor_ponderado: number;
+}
+
+// --- Financeiro (FI) ---
+export type StatusContaPagar = "aberta" | "paga" | "atrasada" | "cancelada";
+export type StatusContaReceber =
+  | "aberta"
+  | "recebida"
+  | "atrasada"
+  | "cancelada";
+
+export interface ContaPagar {
+  cp_id: number;
+  fornecedor_id: number | null;
+  fornecedor_nome: string | null;
+  compra_id: number | null;
+  descricao: string;
+  valor: number;
+  vencimento: string;
+  pago_em: string | null;
+  status: StatusContaPagar;
+}
+
+export interface ContaPagarCriar {
+  descricao: string;
+  valor: number;
+  vencimento: string;
+  fornecedor_id?: number | null;
+}
+
+export interface ContaReceber {
+  cr_id: number;
+  cliente_id: number | null;
+  cliente_nome: string | null;
+  descricao: string;
+  valor: number;
+  vencimento: string;
+  recebido_em: string | null;
+  status: StatusContaReceber;
+}
+
+export interface ContaReceberCriar {
+  descricao: string;
+  valor: number;
+  vencimento: string;
+  cliente_id?: number | null;
+}
+
+export interface FluxoCaixaLinha {
+  data: string;
+  situacao: string;
+  saldo_dia: number;
+  acumulado: number;
+}
+
+export interface FechamentoCaixa {
+  fechamento_id: number;
+  data_referencia: string;
+  total_vendas: number;
+  total_dinheiro: number;
+  total_cartao: number;
+  total_pix: number;
+  qtd_pedidos: number;
+  executado_em: string;
+}
+
+// --- Clientes e Fidelidade (CRM) ---
+export interface Cliente {
+  cliente_id: number;
+  nome: string;
+  cpf: string | null;
+  telefone: string | null;
+  email: string | null;
+  pontos_fidelidade: number;
+  data_cadastro: string;
+  ativo: boolean;
+}
+
+export interface ClienteCriar {
+  nome: string;
+  cpf?: string | null;
+  telefone?: string | null;
+  email?: string | null;
+}
+
+export interface ClienteAtualizar {
+  nome?: string;
+  telefone?: string | null;
+  email?: string | null;
+  ativo?: boolean;
+}
+
+// --- RH: Ponto, Folha, Recrutamento ---
+export interface Ponto {
+  ponto_id: number;
+  funcionario_id: number;
+  funcionario_nome: string;
+  entrada: string;
+  saida: string | null;
+}
+
+export interface Folha {
+  folha_id: number;
+  funcionario_id: number;
+  funcionario_nome: string;
+  competencia: string;
+  salario_bruto: number;
+  desconto_inss: number;
+  desconto_irrf: number;
+  desconto_beneficios: number;
+  salario_liquido: number;
+}
+
+export type StatusVaga = "aberta" | "preenchida" | "cancelada";
+export type EtapaCandidato =
+  | "triagem"
+  | "entrevista"
+  | "proposta"
+  | "contratado"
+  | "reprovado";
+
+export interface Vaga {
+  vaga_id: number;
+  cargo: string;
+  descricao: string | null;
+  status: StatusVaga;
+  aberta_em: string;
+  qtd_candidatos: number;
+}
+
+export interface Candidato {
+  candidato_id: number;
+  vaga_id: number;
+  nome: string;
+  email: string | null;
+  etapa: EtapaCandidato;
+  criado_em: string;
 }

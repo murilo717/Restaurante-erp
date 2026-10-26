@@ -1,0 +1,3 @@
+# Scripts de shell precisam de fim de linha LF para rodar em containers Linux
+*.sh text eol=lf
+docker/init-db.sh text eol=lf

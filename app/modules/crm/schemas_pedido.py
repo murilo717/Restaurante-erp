@@ -13,6 +13,7 @@ class PedidoAbrir(BaseModel):
     """Abertura de um pedido pelo garçom."""
 
     mesa_id: int | None = None
+    cliente_id: int | None = None
     canal: CanalPedido = "salao"
 
 
@@ -36,6 +37,8 @@ class PedidoResumo(BaseModel):
     data_abertura: datetime
     mesa_id: int | None
     mesa_numero: int | None
+    cliente_id: int | None
+    cliente_nome: str | None
     canal: CanalPedido
     status: StatusPedido
     valor_total: float
@@ -47,6 +50,8 @@ class PedidoDetalhe(BaseModel):
     data_abertura: datetime
     mesa_id: int | None
     mesa_numero: int | None
+    cliente_id: int | None
+    cliente_nome: str | None
     canal: CanalPedido
     status: StatusPedido
     valor_total: float

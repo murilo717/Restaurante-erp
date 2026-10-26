@@ -37,15 +37,32 @@ async def _recalcular_total(db: AsyncSession, pedido_id: int, data_abertura) -> 
 
 
 async def _buscar_pedido(db: AsyncSession, pedido_id: int):
-    """Retorna a linha do pedido (cabeçalho + número da mesa) ou None."""
+    """Retorna a linha do pedido (cabeçalho + mesa + cliente) ou None."""
     r = await db.execute(text("""
         SELECT p.pedido_id, p.data_abertura, p.mesa_id, m.numero AS mesa_numero,
+               p.cliente_id, cl.nome AS cliente_nome,
                p.canal, p.status, p.valor_total
         FROM crm.pedidos p
         LEFT JOIN crm.mesas m ON m.mesa_id = p.mesa_id
+        LEFT JOIN crm.clientes cl ON cl.cliente_id = p.cliente_id
         WHERE p.pedido_id = :pid
     """), {"pid": pedido_id})
     return r.mappings().first()
+
+
+def _detalhe(cab, itens) -> PedidoDetalhe:
+    return PedidoDetalhe(
+        pedido_id=cab["pedido_id"],
+        data_abertura=cab["data_abertura"],
+        mesa_id=cab["mesa_id"],
+        mesa_numero=cab["mesa_numero"],
+        cliente_id=cab["cliente_id"],
+        cliente_nome=cab["cliente_nome"],
+        canal=cab["canal"],
+        status=cab["status"],
+        valor_total=float(cab["valor_total"]),
+        itens=list(itens),
+    )
 
 
 async def _itens_do_pedido(db: AsyncSession, pedido_id: int, data_abertura):
@@ -67,12 +84,14 @@ async def listar_pedidos(
 ):
     r = await db.execute(text("""
         SELECT p.pedido_id, p.data_abertura, p.mesa_id, m.numero AS mesa_numero,
+               p.cliente_id, cl.nome AS cliente_nome,
                p.canal, p.status, p.valor_total,
                (SELECT COUNT(*) FROM crm.itens_pedido i
                  WHERE i.pedido_id = p.pedido_id
                    AND i.pedido_data_abertura = p.data_abertura) AS qtd_itens
         FROM crm.pedidos p
         LEFT JOIN crm.mesas m ON m.mesa_id = p.mesa_id
+        LEFT JOIN crm.clientes cl ON cl.cliente_id = p.cliente_id
         ORDER BY p.data_abertura DESC, p.pedido_id DESC
     """))
     return r.mappings().all()
@@ -94,13 +113,25 @@ async def abrir_pedido(
         if mesa is None:
             raise HTTPException(status.HTTP_404_NOT_FOUND, "Mesa não encontrada")
 
+    # Se veio cliente, valida.
+    if dados.cliente_id is not None:
+        cli = (await db.execute(
+            text("SELECT 1 FROM crm.clientes WHERE cliente_id = :id AND ativo"),
+            {"id": dados.cliente_id},
+        )).scalar()
+        if cli is None:
+            raise HTTPException(
+                status.HTTP_404_NOT_FOUND, "Cliente não encontrado ou inativo"
+            )
+
     try:
         r = await db.execute(text("""
-            INSERT INTO crm.pedidos (mesa_id, funcionario_id, canal)
-            VALUES (:mesa_id, :func, :canal)
+            INSERT INTO crm.pedidos (mesa_id, cliente_id, funcionario_id, canal)
+            VALUES (:mesa_id, :cliente_id, :func, :canal)
             RETURNING pedido_id, data_abertura
         """), {
             "mesa_id": dados.mesa_id,
+            "cliente_id": dados.cliente_id,
             "func": funcionario_id,
             "canal": dados.canal,
         })
@@ -122,16 +153,7 @@ async def abrir_pedido(
         )
 
     cab = await _buscar_pedido(db, novo["pedido_id"])
-    return PedidoDetalhe(
-        pedido_id=cab["pedido_id"],
-        data_abertura=cab["data_abertura"],
-        mesa_id=cab["mesa_id"],
-        mesa_numero=cab["mesa_numero"],
-        canal=cab["canal"],
-        status=cab["status"],
-        valor_total=float(cab["valor_total"]),
-        itens=[],
-    )
+    return _detalhe(cab, [])
 
 
 @router.get("/{pedido_id}", response_model=PedidoDetalhe)
@@ -144,16 +166,7 @@ async def ver_pedido(
     if cab is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Pedido não encontrado")
     itens = await _itens_do_pedido(db, pedido_id, cab["data_abertura"])
-    return PedidoDetalhe(
-        pedido_id=cab["pedido_id"],
-        data_abertura=cab["data_abertura"],
-        mesa_id=cab["mesa_id"],
-        mesa_numero=cab["mesa_numero"],
-        canal=cab["canal"],
-        status=cab["status"],
-        valor_total=float(cab["valor_total"]),
-        itens=list(itens),
-    )
+    return _detalhe(cab, itens)
 
 
 @router.post("/{pedido_id}/itens", response_model=PedidoDetalhe, status_code=201)
@@ -234,6 +247,8 @@ async def alterar_status_pedido(
     if cab is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Pedido não encontrado")
 
+    era_pago = cab["status"] == "pago"
+
     await db.execute(text("""
         UPDATE crm.pedidos SET status = :st
         WHERE pedido_id = :pid AND data_abertura = :dt
@@ -244,6 +259,17 @@ async def alterar_status_pedido(
         await db.execute(text("""
             UPDATE crm.mesas SET status = 'livre' WHERE mesa_id = :id
         """), {"id": cab["mesa_id"]})
+
+    # Fidelidade: ao marcar como pago (e ainda não estava pago), credita
+    # pontos ao cliente — 1 ponto por real do valor total do pedido.
+    if dados.status == "pago" and not era_pago and cab["cliente_id"] is not None:
+        pontos = int(float(cab["valor_total"]))
+        if pontos > 0:
+            await db.execute(text("""
+                UPDATE crm.clientes
+                SET pontos_fidelidade = pontos_fidelidade + :p
+                WHERE cliente_id = :id
+            """), {"p": pontos, "id": cab["cliente_id"]})
 
     await db.commit()
     return await ver_pedido(pedido_id, db)  # type: ignore[arg-type]
