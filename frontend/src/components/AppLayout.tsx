@@ -27,6 +27,7 @@ import Inventory2Icon from "@mui/icons-material/Inventory2";
 import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
 import GroupIcon from "@mui/icons-material/Group";
 import WorkIcon from "@mui/icons-material/Work";
+import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
 import RestaurantMenuIcon from "@mui/icons-material/RestaurantMenu";
 import PaymentsIcon from "@mui/icons-material/Payments";
 import ViewModuleIcon from "@mui/icons-material/ViewModule";
@@ -110,6 +111,12 @@ const NAV_ITEMS: NavItem[] = [
     path: "/rh",
     icon: <WorkIcon />,
     perfis: ["gerente", "supervisor"],
+  },
+  {
+    label: "Usuários e permissões",
+    path: "/usuarios",
+    icon: <AdminPanelSettingsIcon />,
+    perfis: ["dba"],
   },
   { label: "Módulos", path: "/modulos", icon: <ViewModuleIcon /> },
 ];

@@ -67,3 +67,27 @@ class FechamentoCaixaOut(BaseModel):
 
 class FecharCaixaIn(BaseModel):
     data: date | None = None
+
+
+# --- Pagamento de pedido ---
+class PedidoPagamentoResumo(BaseModel):
+    """Resumo de um pedido para a tela de pagamento."""
+
+    pedido_id: int
+    data_abertura: datetime
+    mesa_numero: int | None
+    cliente_nome: str | None
+    status: str
+    qtd_itens: int
+    valor_total: float
+    total_pago: float
+    saldo: float
+
+
+class PagamentoRegistrado(BaseModel):
+    status: str
+    pagamento_id: int
+    pedido_id: int
+    valor: float
+    saldo_restante: float
+    quitado: bool

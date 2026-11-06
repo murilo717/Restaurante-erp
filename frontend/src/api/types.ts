@@ -25,12 +25,34 @@ export type FormaPagamento =
   | "pix"
   | "ifood";
 
-// Espelha PagamentoIn em app/modules/fi/router.py
+// Espelha PagamentoIn em app/modules/fi/router.py.
+// Data de abertura e valor são opcionais: se omitidos, o backend usa os do pedido.
 export interface PagamentoIn {
   pedido_id: number;
-  pedido_data_abertura: string; // ISO datetime
   forma_pagamento: FormaPagamento;
+  pedido_data_abertura?: string | null; // ISO datetime
+  valor?: number | null;
+}
+
+export interface PedidoPagamentoResumo {
+  pedido_id: number;
+  data_abertura: string;
+  mesa_numero: number | null;
+  cliente_nome: string | null;
+  status: string;
+  qtd_itens: number;
+  valor_total: number;
+  total_pago: number;
+  saldo: number;
+}
+
+export interface PagamentoRegistrado {
+  status: string;
+  pagamento_id: number;
+  pedido_id: number;
   valor: number;
+  saldo_restante: number;
+  quitado: boolean;
 }
 
 export interface ModuloStatus {
@@ -455,6 +477,17 @@ export interface Vaga {
   status: StatusVaga;
   aberta_em: string;
   qtd_candidatos: number;
+}
+
+// --- Administração de usuários (dba) ---
+export interface UsuarioAdmin {
+  usuario_id: number;
+  login: string;
+  nome: string;
+  email: string;
+  ativo: boolean;
+  funcionario_id: number | null;
+  perfis: string[];
 }
 
 export interface Candidato {

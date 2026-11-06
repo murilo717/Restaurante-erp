@@ -14,7 +14,10 @@ from app.modules.fi.schemas import (
     FluxoCaixaLinha,
     FechamentoCaixaOut,
     FecharCaixaIn,
+    PedidoPagamentoResumo,
+    PagamentoRegistrado,
 )
+from decimal import Decimal
 
 router = APIRouter(prefix="/financeiro", tags=["Gestão Financeira"])
 
@@ -23,22 +26,128 @@ PERFIS_FIN = (Perfil.GERENTE, Perfil.SUPERVISOR)
 PERFIS_FIN_LEITURA = (Perfil.GERENTE, Perfil.SUPERVISOR, Perfil.AUDITOR)
 
 
+PERFIS_PAGAMENTO = (Perfil.GARCOM, Perfil.GERENTE)
+
+
 class PagamentoIn(BaseModel):
     pedido_id: int
-    pedido_data_abertura: datetime
     forma_pagamento: Literal["dinheiro", "debito", "credito", "pix", "ifood"]
-    valor: float = Field(ge=0)
+    # Opcionais: se omitidos, o sistema usa o que está registrado no pedido.
+    # - pedido_data_abertura: lida do próprio pedido (chave composta no banco).
+    # - valor: saldo a pagar do pedido (valor total menos o já pago).
+    pedido_data_abertura: datetime | None = None
+    valor: float | None = Field(default=None, ge=0)
 
 
-@router.post("/pagamentos", status_code=201)
-async def registrar_pagamento(p: PagamentoIn, db: AsyncSession = Depends(get_db),
-                              _=Depends(exige_perfis(Perfil.GARCOM, Perfil.GERENTE))):
-    await db.execute(text("""
+async def _resumo_pedido(
+    db: AsyncSession,
+    pedido_id: int,
+    data_abertura: datetime | None = None,
+    travar: bool = False,
+):
+    """Busca o pedido pelo ID e calcula o quanto já foi pago e o saldo.
+
+    `travar=True` bloqueia a linha do pedido até o fim da transação, para que
+    dois pagamentos simultâneos não paguem o mesmo saldo duas vezes.
+    """
+    filtro = "AND p.data_abertura = :dt" if data_abertura is not None else ""
+    trava = "FOR UPDATE OF p" if travar else ""
+    params: dict = {"pid": pedido_id}
+    if data_abertura is not None:
+        params["dt"] = data_abertura
+
+    r = await db.execute(text(f"""
+        SELECT p.pedido_id, p.data_abertura, m.numero AS mesa_numero,
+               cl.nome AS cliente_nome, p.status, p.valor_total,
+               (SELECT COUNT(*) FROM crm.itens_pedido i
+                 WHERE i.pedido_id = p.pedido_id
+                   AND i.pedido_data_abertura = p.data_abertura) AS qtd_itens,
+               COALESCE((SELECT SUM(g.valor) FROM fi.pagamentos g
+                          WHERE g.pedido_id = p.pedido_id
+                            AND g.pedido_data_abertura = p.data_abertura
+                            AND g.status = 'confirmado'), 0) AS total_pago
+        FROM crm.pedidos p
+        LEFT JOIN crm.mesas m ON m.mesa_id = p.mesa_id
+        LEFT JOIN crm.clientes cl ON cl.cliente_id = p.cliente_id
+        WHERE p.pedido_id = :pid {filtro}
+        {trava}
+    """), params)
+    linha = r.mappings().first()
+    if linha is None:
+        return None
+    dados = dict(linha)
+    dados["saldo"] = dados["valor_total"] - dados["total_pago"]
+    return dados
+
+
+@router.get("/pedidos/{pedido_id}/resumo", response_model=PedidoPagamentoResumo)
+async def resumo_pedido_pagamento(
+    pedido_id: int,
+    db: AsyncSession = Depends(get_db),
+    _=Depends(exige_perfis(*PERFIS_PAGAMENTO)),
+):
+    """Mostra o pedido, o total, o que já foi pago e o saldo a pagar."""
+    resumo = await _resumo_pedido(db, pedido_id)
+    if resumo is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Pedido não encontrado")
+    return resumo
+
+
+@router.post("/pagamentos", response_model=PagamentoRegistrado, status_code=201)
+async def registrar_pagamento(
+    p: PagamentoIn,
+    db: AsyncSession = Depends(get_db),
+    _=Depends(exige_perfis(*PERFIS_PAGAMENTO)),
+):
+    resumo = await _resumo_pedido(
+        db, p.pedido_id, p.pedido_data_abertura, travar=True
+    )
+    if resumo is None:
+        await db.rollback()
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Pedido não encontrado")
+    if resumo["status"] == "cancelado":
+        await db.rollback()
+        raise HTTPException(
+            status.HTTP_409_CONFLICT, "Pedido cancelado: não aceita pagamento"
+        )
+    if resumo["valor_total"] <= 0:
+        await db.rollback()
+        raise HTTPException(
+            status.HTTP_409_CONFLICT, "Pedido sem valor: adicione itens antes de pagar"
+        )
+
+    saldo = resumo["saldo"]
+    if saldo <= 0:
+        await db.rollback()
+        raise HTTPException(status.HTTP_409_CONFLICT, "Este pedido já está quitado")
+
+    # Sem valor informado, paga o saldo inteiro do pedido.
+    valor = saldo if p.valor is None else Decimal(str(p.valor))
+
+    pagamento_id = (await db.execute(text("""
         INSERT INTO fi.pagamentos (pedido_id, pedido_data_abertura, forma_pagamento, valor)
-        VALUES (:pedido_id, :pedido_data_abertura, :forma_pagamento, :valor)
-    """), p.model_dump())
+        VALUES (:pedido_id, :data_abertura, :forma, :valor)
+        RETURNING pagamento_id
+    """), {
+        "pedido_id": resumo["pedido_id"],
+        "data_abertura": resumo["data_abertura"],
+        "forma": p.forma_pagamento,
+        "valor": valor,
+    })).scalar()
     await db.commit()
-    return {"status": "pagamento registrado; estoque baixado pelas triggers do banco"}
+
+    restante = saldo - valor
+    return PagamentoRegistrado(
+        status=(
+            f"Pagamento de R$ {valor:.2f} registrado no pedido #{resumo['pedido_id']}."
+            + (" Pedido quitado." if restante <= 0 else f" Saldo restante: R$ {restante:.2f}.")
+        ),
+        pagamento_id=pagamento_id,
+        pedido_id=resumo["pedido_id"],
+        valor=float(valor),
+        saldo_restante=float(max(restante, Decimal(0))),
+        quitado=restante <= 0,
+    )
 
 
 # ---------------------------------------------------------------------------

@@ -66,7 +66,7 @@ npm run preview
 | Estoque     | `/mm/insumos`, `/mm/pratos/{id}/ficha`, `/mm/compras`, `/mm/lotes` | ler: cozinha/gestão; editar: gerente/supervisor |
 | Funcionários| `GET/POST /rh/funcionarios` + vínculo | gerente                             |
 | Cardápio    | `GET /crm/pratos`                | garcom, cozinha, gerente, supervisor     |
-| Pagamentos  | `POST /financeiro/pagamentos`    | garcom, gerente                          |
+| Pagamentos  | `GET /financeiro/pedidos/{id}/resumo`, `POST /financeiro/pagamentos` | garcom, gerente |
 | Financeiro  | `/financeiro/contas-pagar`, `/contas-receber`, `/fluxo-caixa`, `/fechamentos` | gerente/supervisor; auditor lê |
 | Clientes    | `GET/POST/PATCH /crm/clientes`, `/resgatar-pontos` | garcom, gerente, supervisor |
 | RH          | `/rh/ponto`, `/rh/folha`, `/rh/vagas`, `/rh/candidatos` | ponto: operação; folha/vagas: gerente |
@@ -78,7 +78,8 @@ Novas telas serão adicionadas conforme o backend ganhar endpoints.
 
 - O **cadastro público** (`POST /auth/cadastro`) cria o usuário no banco via `sys.fn_criar_usuario`, que gera o hash **bcrypt** (`crypt`/`pgcrypto`) — compatível com a validação de login (`sys.fn_autenticar`).
 - Por segurança, todo cadastro recebe apenas o perfil inicial **`garcom`** (acesso básico). Ninguém pode se cadastrar como administrador.
-- A elevação de perfis é feita por um gestor através de `POST /auth/usuarios/{id}/perfis` (restrito a `gerente`/`ceo`/`dba`). É assim que o administrador concede permissões aos funcionários.
+- A elevação de perfis é feita pelo **administrador de TI** (perfil `dba`; `ceo` também passa), na tela **Usuários e permissões**, que usa `GET /auth/usuarios`, `POST /auth/usuarios/{id}/perfis` e `DELETE /auth/usuarios/{id}/perfis/{perfil}`. Gerentes **não** promovem: senão poderiam conceder `dba`/`ceo` a si mesmos.
+- A conta do administrador é criada por `tests\criar_admin.py` (padrão `admin` / `admin123`, **apenas para desenvolvimento**; troque antes de usar de verdade).
 
 ## Pedidos (comandas do garçom)
 
@@ -184,3 +185,18 @@ Tela com abas (`gerente`/`supervisor`):
 - **Recrutamento** (`rh.vagas` + `rh.candidatos`): abrir vaga, adicionar
   candidatos e mover entre etapas (triagem → entrevista → proposta → contratado /
   reprovado); preencher ou cancelar a vaga.
+
+## Pagamento de pedido
+
+Na tela **Pagamentos** o operador informa só o **ID do pedido**. O backend busca o
+pedido (incluindo a data de abertura, que faz parte da chave composta do banco) e
+usa como valor o **saldo a pagar**: valor total menos o que já foi pago. Por isso
+também funciona para pagamento parcial (via API, enviando `valor`) e para pagar o
+restante depois.
+
+Regras: pedido inexistente → 404; cancelado, sem itens ou já quitado → 409.
+
+> **Importante:** registrar o pagamento **não** muda o status do pedido. A baixa
+> automática de estoque é disparada pela trigger em `crm.pedidos` quando o status
+> vira `pago`, e os pontos de fidelidade também são creditados nessa transição.
+> Hoje isso é um passo separado, na tela Pedidos.

@@ -5,7 +5,12 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.security import criar_token, exige_perfis, Perfil
-from app.modules.auth.schemas import CadastroIn, CadastroOut, AtribuirPerfisIn
+from app.modules.auth.schemas import (
+    CadastroIn,
+    CadastroOut,
+    AtribuirPerfisIn,
+    UsuarioListaOut,
+)
 
 router = APIRouter(prefix="/auth", tags=["Autenticação"])
 
@@ -98,11 +103,12 @@ async def atribuir_perfis(
     usuario_id: int,
     dados: AtribuirPerfisIn,
     db: AsyncSession = Depends(get_db),
-    _=Depends(exige_perfis(Perfil.GERENTE)),
+    _=Depends(exige_perfis(Perfil.DBA)),
 ):
-    """Atribui perfis a um usuário. Restrito a gestores (gerente/ceo/dba).
+    """Atribui perfis a um usuário. Restrito ao administrador (dba/ceo).
 
-    É aqui que o administrador concede permissões aos funcionários.
+    Não é permitido a gerentes: senão qualquer gerente poderia conceder a si
+    mesmo os perfis dba ou ceo (escalada de privilégio).
     """
     perfis_pedidos = {p.strip().lower() for p in dados.perfis}
 
@@ -135,3 +141,67 @@ async def atribuir_perfis(
     await db.commit()
 
     return {"usuario_id": usuario_id, "perfis": sorted(validos)}
+
+
+@router.get("/usuarios", response_model=list[UsuarioListaOut])
+async def listar_usuarios(
+    db: AsyncSession = Depends(get_db),
+    _=Depends(exige_perfis(Perfil.DBA)),
+):
+    """Lista todos os usuários com seus perfis (administrador)."""
+    r = await db.execute(text("""
+        SELECT u.usuario_id, u.login, u.nome, u.email, u.ativo, u.funcionario_id,
+               COALESCE(
+                   array_agg(p.nome ORDER BY p.nome) FILTER (WHERE p.nome IS NOT NULL),
+                   ARRAY[]::varchar[]
+               ) AS perfis
+        FROM sys.usuarios u
+        LEFT JOIN sys.usuario_perfis up ON up.usuario_id = u.usuario_id
+        LEFT JOIN sys.perfis p ON p.perfil_id = up.perfil_id
+        GROUP BY u.usuario_id, u.login, u.nome, u.email, u.ativo, u.funcionario_id
+        ORDER BY u.login
+    """))
+    return r.mappings().all()
+
+
+@router.delete("/usuarios/{usuario_id}/perfis/{perfil}")
+async def remover_perfil(
+    usuario_id: int,
+    perfil: str,
+    db: AsyncSession = Depends(get_db),
+    admin: dict = Depends(exige_perfis(Perfil.DBA)),
+):
+    """Remove um perfil de um usuário (administrador).
+
+    Protege contra bloqueio: o administrador não pode tirar o próprio perfil
+    dba, senão ninguém mais conseguiria gerenciar permissões.
+    """
+    perfil = perfil.strip().lower()
+
+    alvo_login = (await db.execute(
+        text("SELECT login FROM sys.usuarios WHERE usuario_id = :uid"),
+        {"uid": usuario_id},
+    )).scalar()
+    if alvo_login is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Usuário não encontrado")
+
+    if alvo_login == admin["login"] and perfil == Perfil.DBA.value:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "Você não pode remover o seu próprio perfil dba",
+        )
+
+    r = await db.execute(text("""
+        DELETE FROM sys.usuario_perfis
+        WHERE usuario_id = :uid
+          AND perfil_id = (SELECT perfil_id FROM sys.perfis WHERE nome = :perfil)
+    """), {"uid": usuario_id, "perfil": perfil})
+    if r.rowcount == 0:
+        await db.rollback()
+        raise HTTPException(
+            status.HTTP_404_NOT_FOUND, "O usuário não possui esse perfil"
+        )
+    await db.commit()
+
+    perfis = await _perfis_do_usuario(db, alvo_login)
+    return {"usuario_id": usuario_id, "perfis": sorted(perfis)}

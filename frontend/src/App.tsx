@@ -13,6 +13,7 @@ import EstoquePage from "@/pages/EstoquePage";
 import FinanceiroPage from "@/pages/FinanceiroPage";
 import ClientesPage from "@/pages/ClientesPage";
 import RhPage from "@/pages/RhPage";
+import UsuariosPage from "@/pages/UsuariosPage";
 import FuncionariosPage from "@/pages/FuncionariosPage";
 import PratosPage from "@/pages/PratosPage";
 import PagamentosPage from "@/pages/PagamentosPage";
@@ -48,6 +49,7 @@ export default function App() {
         <Route path="/financeiro" element={<FinanceiroPage />} />
         <Route path="/clientes" element={<ClientesPage />} />
         <Route path="/rh" element={<RhPage />} />
+        <Route path="/usuarios" element={<UsuariosPage />} />
         <Route path="/funcionarios" element={<FuncionariosPage />} />
         <Route path="/pratos" element={<PratosPage />} />
         <Route path="/pagamentos" element={<PagamentosPage />} />

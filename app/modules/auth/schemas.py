@@ -45,3 +45,15 @@ class AtribuirPerfisIn(BaseModel):
     """Perfis que um administrador atribui a um usuário existente."""
 
     perfis: list[str] = Field(min_length=1)
+
+
+class UsuarioListaOut(BaseModel):
+    """Usuário com seus perfis, para a tela de administração."""
+
+    usuario_id: int
+    login: str
+    nome: str
+    email: str
+    ativo: bool
+    funcionario_id: int | None
+    perfis: list[str]

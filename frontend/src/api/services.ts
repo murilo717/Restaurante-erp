@@ -151,11 +151,16 @@ export async function alterarStatusPedido(
 // POST /financeiro/pagamentos
 export async function registrarPagamento(
   pagamento: PagamentoIn,
-): Promise<{ status: string }> {
-  const { data } = await api.post<{ status: string }>(
-    "/financeiro/pagamentos",
-    pagamento,
-  );
+): Promise<import("@/api/types").PagamentoRegistrado> {
+  const { data } = await api.post("/financeiro/pagamentos", pagamento);
+  return data;
+}
+
+// GET /financeiro/pedidos/{id}/resumo — pedido, total, já pago e saldo.
+export async function obterResumoPedidoPagamento(
+  pedidoId: number,
+): Promise<import("@/api/types").PedidoPagamentoResumo> {
+  const { data } = await api.get(`/financeiro/pedidos/${pedidoId}/resumo`);
   return data;
 }
 
@@ -562,5 +567,36 @@ export async function moverEtapaCandidato(
   const { data } = await api.patch(`/rh/candidatos/${candidatoId}/etapa`, {
     etapa,
   });
+  return data;
+}
+
+// =========================================================================
+// Administração de usuários e permissões (dba)
+// =========================================================================
+
+export async function listarUsuarios(): Promise<
+  import("@/api/types").UsuarioAdmin[]
+> {
+  const { data } = await api.get("/auth/usuarios");
+  return data;
+}
+
+export async function atribuirPerfil(
+  usuarioId: number,
+  perfil: string,
+): Promise<{ usuario_id: number; perfis: string[] }> {
+  const { data } = await api.post(`/auth/usuarios/${usuarioId}/perfis`, {
+    perfis: [perfil],
+  });
+  return data;
+}
+
+export async function removerPerfil(
+  usuarioId: number,
+  perfil: string,
+): Promise<{ usuario_id: number; perfis: string[] }> {
+  const { data } = await api.delete(
+    `/auth/usuarios/${usuarioId}/perfis/${perfil}`,
+  );
   return data;
 }
